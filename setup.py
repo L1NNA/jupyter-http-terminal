@@ -21,8 +21,8 @@ setup(
     ],
     description="Run a http-terminal on Jupyter",
     entry_points={
-        'jupyter_http_terminal_proxy': [
-            'desktop = jupyter_http_terminal.server:setup_jupyter_server_proxy',
+        'jupyter_serverproxy_servers': [
+            'httpterminal = jupyter_http_terminal.server:setup_jupyter_server_proxy',
         ]
     },
     install_requires=['jupyter-server-proxy>=1.4.0'],
