@@ -1,0 +1,2 @@
+graft jupyter_http_terminal/static
+graft jupyter_http_terminal/icons
