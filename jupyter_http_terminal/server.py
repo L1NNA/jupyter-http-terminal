@@ -121,10 +121,9 @@ class TerminalServer:
 
 def setup_jupyter_server_proxy():
     """Setup function for Jupyter server proxy."""
-    server = TerminalServer()
     return {
         'command': ['python', '-m', 'jupyter_http_terminal.server'],
-        'port': 8888,
+        'port': 8766,
         'absolute_url': False,
         'timeout': 30,
         'new_browser_window': True,
@@ -140,9 +139,9 @@ async def main():
     server = TerminalServer()
     runner = web.AppRunner(server.app)
     await runner.setup()
-    site = web.TCPSite(runner, 'localhost', 8888)
+    site = web.TCPSite(runner, 'localhost', 8766)
     await site.start()
-    logger.info("Server started at http://localhost:8888")
+    logger.info("Server started at http://localhost:8766")
     
     try:
         while True:

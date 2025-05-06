@@ -21,6 +21,8 @@ setup(
     ],
     description="Run a http-terminal on Jupyter",
     entry_points={
+        # all plugins have the same key of jupyter_serverproxy_servers
+        # but different variable name in the equation.
         'jupyter_serverproxy_servers': [
             'httpterminal = jupyter_http_terminal.server:setup_jupyter_server_proxy',
         ]
