@@ -19,7 +19,7 @@ setup(
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
     ],
-    description="Run a http-termal on Jupyter",
+    description="Run a http-terminal on Jupyter",
     entry_points={
         'jupyter_http_terminal_proxy': [
             'desktop = jupyter_http_terminal.server:setup_jupyter_server_proxy',
