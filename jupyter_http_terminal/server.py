@@ -139,6 +139,7 @@ async def main():
     server = TerminalServer()
     runner = web.AppRunner(server.app)
     await runner.setup()
+    # import 0.0.0.0 for jupyter proxy to work and avoid port conflict with jupyter
     site = web.TCPSite(runner, '0.0.0.0', 8766)
     await site.start()
     logger.info("Server started at http://localhost:8766")
