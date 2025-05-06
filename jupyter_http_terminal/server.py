@@ -73,7 +73,6 @@ class TerminalServer:
         input_data = data.get('input', '').encode()
         
         # Handle special keys
-        print('!!!', input_data)
         if input_data == b'\r':
             input_data = b'\n'
         
@@ -127,7 +126,13 @@ def setup_jupyter_server_proxy():
         'command': ['python', '-m', 'jupyter_http_terminal.server'],
         'port': 8888,
         'absolute_url': False,
-        'timeout': 30
+        'timeout': 30,
+        'new_browser_window': True,
+        'launcher_entry': {
+            'title': 'HTTP Terminal',
+            'icon_path': os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                      'icons', 'capybara.svg')
+        }
     }
 
 async def main():
