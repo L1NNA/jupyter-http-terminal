@@ -14,6 +14,8 @@ import struct
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+src_folder = os.path.dirname(os.path.abspath(__file__))
+
 class TerminalServer:
     def __init__(self):
         self.app = web.Application()
@@ -61,7 +63,8 @@ class TerminalServer:
 
     async def handle_index(self, request):
         """Serve the main HTML page with the terminal interface."""
-        return web.FileResponse('jupyter_http_terminal/static/index.html')
+        return web.FileResponse(
+            os.path.join(src_folder, 'static/index.html'))
 
     async def handle_terminal(self, request):
         """Return the terminal status."""
@@ -123,14 +126,14 @@ def setup_jupyter_server_proxy():
     """Setup function for Jupyter server proxy."""
     return {
         'command': ['python', '-m', 'jupyter_http_terminal.server'],
-        'port': 8766,
+        'port': 8866,
         'absolute_url': False,
         'timeout': 30,
         'new_browser_window': True,
         'launcher_entry': {
             'title': 'HTTP Terminal',
-            'icon_path': os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                      'icons', 'capybara.svg')
+            'icon_path': os.path.join(
+                src_folder, 'icons', 'capybara.svg')
         }
     }
 
@@ -140,9 +143,9 @@ async def main():
     runner = web.AppRunner(server.app)
     await runner.setup()
     # import 0.0.0.0 for jupyter proxy to work and avoid port conflict with jupyter
-    site = web.TCPSite(runner, '0.0.0.0', 8766)
+    site = web.TCPSite(runner, '0.0.0.0', 8866)
     await site.start()
-    logger.info("Server started at http://localhost:8766")
+    logger.info("Server started at http://localhost:8866")
     
     try:
         while True:
