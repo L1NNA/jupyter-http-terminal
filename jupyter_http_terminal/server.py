@@ -139,7 +139,7 @@ async def main():
     server = TerminalServer()
     runner = web.AppRunner(server.app)
     await runner.setup()
-    site = web.TCPSite(runner, 'localhost', 8766)
+    site = web.TCPSite(runner, '0.0.0.0', 8766)
     await site.start()
     logger.info("Server started at http://localhost:8766")
     
