@@ -54,7 +54,7 @@
         
         async function initializeTerminal() {
             try {
-                const response = await fetch('/terminal');
+                const response = await fetch('terminal');
                 const data = await response.json();
                 if (data.status === 'ok') {
                     fitAddon.fit();
@@ -68,7 +68,7 @@
         
         async function startOutputStream() {
             try {
-                const response = await fetch('/terminal/output');
+                const response = await fetch('terminal/output');
                 const reader = response.body.getReader();
                 
                 while (true) {
@@ -85,7 +85,7 @@
         
         async function sendInput(input) {
             try {
-                await fetch('/terminal/input', {
+                await fetch('terminal/input', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -100,7 +100,7 @@
         async function resizeTerminal() {
             const { rows, cols } = terminal;
             try {
-                await fetch('/terminal/resize', {
+                await fetch('terminal/resize', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
