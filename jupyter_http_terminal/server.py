@@ -42,6 +42,22 @@ logging.getLogger('aiohttp.access').setLevel(logging.ERROR)
 logging.getLogger('aiohttp.server').setLevel(logging.ERROR)
 logging.getLogger('aiohttp.web').setLevel(logging.ERROR)
 
+# For Jupyter Server Proxy integration
+def setup_jupyter_server_proxy():
+    return {
+        'command': ['python', '-m', 'jupyter_http_terminal.server'],
+        'port': 8866,
+        'absolute_url': False,
+        'timeout': 30,
+        'new_browser_window': True,
+        'launcher_entry': {
+            'title': 'HTTP Terminal',
+            'icon_path': os.path.join(
+                os.path.dirname(__file__), 'icons', 'capybara.svg'
+            )
+        }
+    }
+
 SRC_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
