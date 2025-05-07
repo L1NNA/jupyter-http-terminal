@@ -1,139 +1,144 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTTP Terminal</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.1.0/css/xterm.css" />
-    <script src="https://cdn.jsdelivr.net/npm/xterm@5.1.0/lib/xterm.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.7.0/lib/xterm-addon-fit.js"></script>
-    <style>
-        body {
-            margin: 0;
-            padding: 10px;
-            background-color: #1e1e1e;
-            color: #ffffff;
-            font-family: 'Consolas', 'Monaco', monospace;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            box-sizing: border-box;
-        }
-        #terminal {
-            background-color: #000000;
-            border-radius: 6px;
-            padding: 5px;
-            flex-grow: 1;
-            height: calc(100vh - 20px);
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HTTP Terminal</title>
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/xterm@5.1.0/css/xterm.css"
+  />
+  <script src="https://cdn.jsdelivr.net/npm/xterm@5.1.0/lib/xterm.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.7.0/lib/xterm-addon-fit.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 10px;
+      background-color: #1e1e1e;
+      color: #ffffff;
+      font-family: 'Consolas','Monaco',monospace;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+    }
+    #terminal {
+      background-color: #000;
+      border-radius: 6px;
+      padding: 5px;
+      flex-grow: 1;
+      height: calc(100vh - 20px);
+    }
+  </style>
 </head>
 <body>
-    <div id="terminal"></div>
-    
-    <script>
-        const terminal = new Terminal({
-            cursorBlink: true,
-            fontSize: 14,
-            fontFamily: 'Consolas, Monaco, monospace',
-            theme: {
-                background: '#000000',
-                foreground: '#ffffff'
-            },
-            rows: 24,
-            cols: 80,
-            convertEol: true,
-            cursorStyle: 'block',
-            allowTransparency: true
+  <div id="terminal"></div>
+
+  <script>
+    // 1) Base URL
+    const baseUrl = window.location.pathname.replace(/\/terminal\/?$/, '');
+
+    // 2) Per-tab session_id
+    const SESSION_KEY = 'terminal_session_id';
+    let sessionId = sessionStorage.getItem(SESSION_KEY);
+    if (!sessionId) {
+      sessionId = crypto.randomUUID();
+      sessionStorage.setItem(SESSION_KEY, sessionId);
+    }
+
+    // 3) Endpoints with query-param
+    const qs = `?session_id=${sessionId}`;
+    const endpointNew    = `${baseUrl}terminal${qs}`;
+    const endpointPoll   = `${baseUrl}terminal/output${qs}`;
+    const endpointInput  = `${baseUrl}terminal/input${qs}`;
+    const endpointResize = `${baseUrl}terminal/resize${qs}`;
+
+    // 4) Setup xterm.js + fit addon
+    const terminal = new Terminal({
+      cursorBlink: true,
+      fontSize: 14,
+      fontFamily: 'Consolas, Monaco, monospace',
+      theme: { background: '#000000', foreground: '#ffffff' },
+      rows: 24,
+      cols: 80,
+      convertEol: true,
+      cursorStyle: 'block',
+      allowTransparency: true
+    });
+    const fitAddon = new FitAddon.FitAddon();
+    terminal.loadAddon(fitAddon);
+    terminal.open(document.getElementById('terminal'));
+    fitAddon.fit();
+    terminal.focus();  // **auto-focus**
+
+    // 5) Initialize session & start polling
+    async function initializeTerminal() {
+      try {
+        const res  = await fetch(endpointNew);
+        const data = await res.json();
+        if (data.status === 'ok') {
+          await resizeTerminal();
+          pollOutput();
+          pollInterval = setInterval(pollOutput, 100);
+        }
+      } catch (err) {
+        console.error('Failed to initialize terminal:', err);
+      }
+    }
+
+    // 6) Send keystrokes
+    function sendInput(input) {
+      return fetch(endpointInput, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input })
+      }).catch(err => console.error('Failed to send input:', err));
+    }
+
+    terminal.onData(data => {
+      if (data === '\r') data = '\n';
+      sendInput(data);
+    });
+
+    // 7) Handle resize
+    async function resizeTerminal() {
+      const { rows, cols } = terminal;
+      try {
+        await fetch(endpointResize, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rows, cols })
         });
-        
-        const fitAddon = new FitAddon.FitAddon();
-        terminal.loadAddon(fitAddon);
-        terminal.open(document.getElementById('terminal'));
-        fitAddon.fit();
-        
-        async function initializeTerminal() {
-            try {
-                const response = await fetch('terminal');
-                const data = await response.json();
-                if (data.status === 'ok') {
-                    fitAddon.fit();
-                    await resizeTerminal(); // trigger initial resize right away
-                    startOutputStream();
-                }
-            } catch (error) {
-                console.error('Failed to initialize terminal:', error);
-            }
+      } catch (err) {
+        console.error('Failed to resize terminal:', err);
+      }
+    }
+    window.addEventListener('resize', () => {
+      fitAddon.fit();
+      resizeTerminal();
+    });
+
+    // 8) Poll loop with auto-close on exit
+    let pollInterval;
+    async function pollOutput() {
+      try {
+        const res = await fetch(endpointPoll);
+        const { output, closed } = await res.json();
+        if (output) terminal.write(output);
+        if (closed) {
+          clearInterval(pollInterval);
+          // give last write a moment, then try to close
+          setTimeout(() => {
+            window.close();            // normal close
+          }, 100);
         }
-        
-        async function startOutputStream() {
-            try {
-                const response = await fetch('terminal/output');
-                const reader = response.body.getReader();
-                
-                while (true) {
-                    const {value, done} = await reader.read();
-                    if (done) break;
-                    
-                    const text = new TextDecoder().decode(value);
-                    terminal.write(text);
-                }
-            } catch (error) {
-                console.error('Error in output stream:', error);
-            }
-        }
-        
-        async function sendInput(input) {
-            try {
-                await fetch('terminal/input', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ input: input }),
-                });
-            } catch (error) {
-                console.error('Failed to send input:', error);
-            }
-        }
-        
-        async function resizeTerminal() {
-            const { rows, cols } = terminal;
-            try {
-                await fetch('terminal/resize', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ rows, cols }),
-                });
-            } catch (error) {
-                console.error('Failed to resize terminal:', error);
-            }
-        }
-        
-        // Handle terminal input
-        terminal.onData(data => {
-            // Handle special keys
-            
-            if (data === '\r') {
-                data = '\n';
-            }
-            // if (data == '\n'){
-            //     data == '\n\n';
-            // }
-            // terminal.write(data); // immediately display the keystroke
-            sendInput(data);
-        });
-        
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            fitAddon.fit();
-            resizeTerminal();
-        });
-        
-        // Initialize the terminal when the page loads
-        initializeTerminal();
-    </script>
+      } catch (err) {
+        console.error('Poll error:', err);
+      }
+    }
+
+    // 9) Start
+    initializeTerminal();
+  </script>
 </body>
 </html>
